@@ -1,0 +1,23 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: delete-stalled-concourse-workers
+spec:
+  schedule: "*/1 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: delete-stalled-concourse-workers
+            image: andyhume/delete-stalled-concourse-workers:v0.0.1
+            args:
+            - /app
+            env:
+            - name: CONCOURSE_USERNAME
+              value: username
+            - name: CONCOURSE_PASSWORD
+              value: password
+            - name: CONCOURSE_URL
+              value: http://concourse-web:8080
+          restartPolicy: OnFailure
