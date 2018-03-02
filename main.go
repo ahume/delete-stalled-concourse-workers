@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/skymarshal/provider"
@@ -16,6 +17,7 @@ var (
 	concourseURL      = os.Getenv("CONCOURSE_URL")
 	concourseUsername = os.Getenv("CONCOURSE_USERNAME")
 	concoursePassword = os.Getenv("CONCOURSE_PASSWORD")
+	everyTenSeconds   = time.Second * 10
 )
 
 func main() {
@@ -32,7 +34,13 @@ func main() {
 	authToken := getAuthTokenForTeam(concourseURL, concourseTeam, concourseUsername, concoursePassword)
 	concourseClient := concourse.NewClient(concourseURL, &http.Client{Transport: tokenTransport{authToken}}, false)
 
-	workers, err := concourseClient.ListWorkers()
+	for range time.Tick(everyTenSeconds) {
+		checkAndPrune(concourseClient)
+	}
+}
+
+func checkAndPrune(client concourse.Client) {
+	workers, err := client.ListWorkers()
 	if err != nil {
 		log.Fatal("could not list workers: ", err)
 	}
@@ -40,7 +48,7 @@ func main() {
 	for _, worker := range workers {
 		if worker.State == "stalled" {
 			fmt.Println("Pruning stalled worker", worker.Name)
-			pruneErr := concourseClient.PruneWorker(worker.Name)
+			pruneErr := client.PruneWorker(worker.Name)
 			if pruneErr != nil {
 				log.Fatal("could not prune worker: ", pruneErr)
 			}
