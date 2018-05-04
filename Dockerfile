@@ -14,5 +14,6 @@ RUN go build -o app
 RUN chmod +x app
 
 FROM alpine
+RUN apk add --update --no-cache ca-certificates
 COPY --from=build-env /go/src/github.com/ahume/delete-stalled-concourse-workers/app /app
 
